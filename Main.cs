@@ -105,7 +105,9 @@ class Program
                  
                 else if(message.Video != null && message.Photo.Any())
                 {
-                    var video = message.Video();
+                    var video = message.Video;
+                    string caption = message.Caption ?? "";
+                    
                     await botClient.SendVideoAsync(chatId: adminId, 
                         video: new InputFileId(video.FileId), 
                         caption: $"📨 Message from <a href=\"tg://user?id={userID}\">{userName}</a>:\n \n{caption}",
