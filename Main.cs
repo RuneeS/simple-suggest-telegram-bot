@@ -102,8 +102,20 @@ class Program
 
                     await botClient.SendTextMessageAsync(message.Chat.Id, "📸 Photo has been sent!");
                 }
+                 
+                else if(message.Video != null && message.Photo.Any())
+                {
+                    var video = message.Video();
+                    await botClient.SendVideoAsync(chatId: adminId, 
+                        video: new InputFileId(video.FileId), 
+                        caption: $"📨 Message from <a href=\"tg://user?id={userID}\">{userName}</a>:\n \n{caption}",
+                        parseMode: ParseMode.Html,
+                        replyMarkup: BuildAdminButton(userID));
 
+                    await botClient.SendTextMessageAsync(message.Chat.Id, "📹 Video has sent!");
+                } 
             }
+            
             else if (update.Type == UpdateType.CallbackQuery && update.CallbackQuery != null)
             {
                 var callback = update.CallbackQuery;
