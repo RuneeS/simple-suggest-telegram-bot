@@ -1,12 +1,11 @@
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace Goobot
+namespace MyBot
 {
 public static class InlineKeyboard
 {
     public static InlineKeyboardMarkup BuildAdminButton(long userID)
-    {
-                        //Inline keyboard   
+    {   
         var inlineKeyboard = new InlineKeyboardMarkup(new[]
         {
             new[]
