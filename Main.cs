@@ -103,7 +103,7 @@ class Program
                     await botClient.SendTextMessageAsync(message.Chat.Id, "📸 Photo has been sent!");
                 }
                  
-                else if(message.Video != null && message.Video.Any())
+                else if(message.Video != null)
                 {
                     var video = message.Video;
                     string caption = message.Caption ?? "";
