@@ -4,9 +4,9 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types.Enums;
 
-using static Goobot.InlineKeyboard;
+using static MyBot.InlineKeyboard;
 
-namespace Goobot
+namespace MyBot
 {
 
 class Program
@@ -111,7 +111,7 @@ class Program
 
 
                 var splitData = data.Split('-');
-                string action = splitData[0]; // reply или ban
+                string action = splitData[0];
                 long telegramUserID = long.Parse(splitData[1]);
 
                 if (action == "reply")
@@ -166,10 +166,8 @@ class Program
         }
     }
 
-    // Обработчик ошибок
     private static Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
     {
-        // Формируем сообщение об ошибке
         var errorMessage = error switch
         {
             ApiRequestException apiRequestException =>
@@ -177,7 +175,6 @@ class Program
             _ => error.ToString()
         };
 
-        // Выводим ошибку в консоль
         Console.WriteLine(errorMessage);
         return Task.CompletedTask;
     }
