@@ -43,7 +43,7 @@ class Program
         try
         {
             //Admin ID
-            long adminId = 1306218745;
+            long adminId = //Telegram ID of admin
 
             //Text message handler
              if (update.Type == UpdateType.Message && update.Message != null)
