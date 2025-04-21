@@ -1,10 +1,11 @@
-﻿using Telegram.Bot;
+using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types.Enums;
 
 using static MyBot.InlineKeyboard;
+using static MyBot.Language;
 
 namespace MyBot
 {
@@ -16,7 +17,7 @@ class Program
 
     static async Task Main()
     {
-        _botClient = new TelegramBotClient("YOUR_TOKEN_HERE");
+        _botClient = new TelegramBotClient("TOKEN");
         
         _receiverOptions = new ReceiverOptions
         {
@@ -31,7 +32,7 @@ class Program
         _botClient.StartReceiving(UpdateHandler, ErrorHandler, _receiverOptions, cts.Token);
 
         var me = await _botClient.GetMeAsync();
-        Console.WriteLine($"{me.Username} запущен!");
+        Console.WriteLine($"{me.Username} is working now!");
 
         
 
@@ -42,8 +43,11 @@ class Program
     {
         try
         {
+            //Language database
+            var userRepo = new UserSettingsRepository();
+
             //Admin ID
-            long adminId = //Telegram ID of admin
+            long adminId = //ID;
 
             //Text message handler
              if (update.Type == UpdateType.Message && update.Message != null)
@@ -53,6 +57,12 @@ class Program
                 string userName = $"{update.Message.From.FirstName} {update.Message.From.LastName}".Trim();
                 string text = update.Message.Text;
                 string clickableName = $"<a href=\"tg://user?id={userID}\">{userName}</a>";
+
+                //Language getting
+                string langCode = userRepo.GetLanguage(userID);
+                Language lang = langCode == "ru" ? Language.Russian : Language.English;
+
+
 
                 if (Database.IsUserBanned(userID.ToString()))
                 {
@@ -75,20 +85,26 @@ class Program
                         await botClient.SendTextMessageAsync(message.Chat.Id, "✅");
                     }
 
+                    //Command handler
+                    if (command == "/language")
+                    {
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Choose your language / Выберите ваш язык", 
+                                                             replyMarkup: BuildLanguageButton(userID));
+                    }
+
                     //Only text message handler
                     else
                     {
                         await botClient.SendTextMessageAsync(chatId: adminId,
-                            text: $"📨 Message from <a href=\"tg://user?id={userID}\">{userName}</a>:\n \n {text}",
+                            text: $"{lang["new_message"]} <a href=\"tg://user?id={userID}\">{userName}</a>:\n \n {text}",
                             parseMode: ParseMode.Html,
                             replyMarkup: BuildAdminButton(userID));
 
-                        await botClient.SendTextMessageAsync(message.Chat.Id, "📨 Message has sent!");
+                        await botClient.SendTextMessageAsync(message.Chat.Id, lang["message_sent"]);
                         Console.WriteLine($"📨 Message from {userName} (ID: {userID}): {text}");
                     }
                 }
 
-                //Other types of messages
                 else if (message.Photo != null && message.Photo.Any())
                 {
                     var largestPhoto = message.Photo.Last();
@@ -96,42 +112,45 @@ class Program
 
                     await botClient.SendPhotoAsync(chatId: adminId,
                         photo: new InputFileId(largestPhoto.FileId),
-                        caption: $"📨 Message from <a href=\"tg://user?id={userID}\">{userName}</a>:\n \n{caption}",
+                        caption: $"{lang["new_message"]} <a href=\"tg://user?id={userID}\">{userName}</a>:\n \n{caption}",
                         parseMode: ParseMode.Html,
                         replyMarkup: BuildAdminButton(userID));
 
-                    await botClient.SendTextMessageAsync(message.Chat.Id, "📸 Photo has been sent!");
+                    await botClient.SendTextMessageAsync(message.Chat.Id, lang["photo_sent"]);
                 }
-                 
+                
                 else if(message.Video != null)
                 {
                     var video = message.Video;
                     string caption = message.Caption ?? "";
-                    
+
                     await botClient.SendVideoAsync(chatId: adminId, 
                         video: new InputFileId(video.FileId), 
-                        caption: $"📨 Message from <a href=\"tg://user?id={userID}\">{userName}</a>:\n \n{caption}",
+                        caption: $"{lang["new_message"]} <a href=\"tg://user?id={userID}\">{userName}</a>:\n \n{caption}",
                         parseMode: ParseMode.Html,
                         replyMarkup: BuildAdminButton(userID));
 
-                    await botClient.SendTextMessageAsync(message.Chat.Id, "📹 Video has sent!");
-                } 
+                    await botClient.SendTextMessageAsync(message.Chat.Id, lang["video_sent"]);
+                }
+
             }
-            
             else if (update.Type == UpdateType.CallbackQuery && update.CallbackQuery != null)
             {
                 var callback = update.CallbackQuery;
                 string data = callback.Data;
 
-
                 var splitData = data.Split('-');
-                string action = splitData[0];
+                string action = splitData[0]; // reply или ban
                 long telegramUserID = long.Parse(splitData[1]);
+
+                //Language getting
+                string langCode = userRepo.GetLanguage(telegramUserID);
+                Language lang = langCode == "ru" ? Language.Russian : Language.English;
 
                 if (action == "reply")
                 {
                     await botClient.AnswerCallbackQueryAsync(callbackQueryId: callback.Id,
-                                                             text: "😭 This feature is not available yet",
+                                                             text: lang["not_aviable"],
                                                              showAlert: true);
                 }
                 else if (action == "ban")
@@ -144,18 +163,16 @@ class Program
                     }
                     else
                     {
-                        //message to admin
                         Database.AddBannedUser(telegramUserID.ToString());
                         await botClient.AnswerCallbackQueryAsync(callbackQueryId: callback.Id,
                                                              text: "🤡 The user has banned.",
                                                              showAlert: true);
                         await botClient.SendTextMessageAsync(chatId: adminId,
-                            text: $"🤡 {telegramUserID} is banned.",
+                            text: $"🤡 {telegramUserID} {lang["user_banned"]}",
                             parseMode: ParseMode.Html,
                             replyMarkup: BuildUnbanButton(telegramUserID));                  
 
-                        //message to user
-                        await botClient.SendTextMessageAsync(chatId: telegramUserID, text: "🤡 You have banned");
+                        await botClient.SendTextMessageAsync(chatId: telegramUserID, text: lang["you_banned"]);
                     }
                 }
                 else if (action == "unban")
@@ -165,12 +182,27 @@ class Program
                                                          text: "🎉 The user has ubanned.",
                                                          showAlert: true);
                     await botClient.SendTextMessageAsync(chatId: adminId,
-                        text: $"🎉 {telegramUserID} is ubanned now.",
+                        text: $"🎉 {telegramUserID} {lang["user_unbanned"]}",
                         parseMode: ParseMode.Html);             
 
-                        await botClient.SendTextMessageAsync(chatId: telegramUserID, text: "🎉 You're unbanned now");     
+                        await botClient.SendTextMessageAsync(chatId: telegramUserID, text: lang["you_unbanned"]);     
 
                 }
+
+                //Languages
+                else if (action == "rus")
+                {
+                    userRepo.SetLanguage(telegramUserID, "ru");
+
+                    await botClient.SendTextMessageAsync(chatId: telegramUserID, text: "✅ Язык успешно сменён!");
+                }
+                else if (action == "eng")
+                {
+                    userRepo.SetLanguage(telegramUserID, "eng");
+
+                    await botClient.SendTextMessageAsync(chatId: telegramUserID, text: "✅ Language has succesfully switched!");
+                }
+
                 await botClient.AnswerCallbackQueryAsync(callback.Id);
             }
         }
